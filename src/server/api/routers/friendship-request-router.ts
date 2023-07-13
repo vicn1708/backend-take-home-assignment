@@ -1,5 +1,3 @@
-import type { Friendship } from '@/server/db/types'
-
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 
@@ -67,22 +65,11 @@ export const friendshipRequestRouter = router({
     .use(canSendFriendshipRequest)
     .input(SendFriendshipRequestInputSchema)
     .mutation(async ({ ctx, input }) => {
-      /**
-       * Question 3: Fix bug
-       *
-       * Fix a bug where our users could not send a friendship request after
-       * they'd previously been declined. Steps to reproduce:
-       *  1. User A sends a friendship request to User B
-       *  2. User B declines the friendship request
-       *  3. User A tries to send another friendship request to User B -> ERROR
-       *
-       * Instructions:
-       *  - Go to src/server/tests/friendship-request.test.ts, enable the test
-       * scenario for Question 3
-       *  - Run `yarn test` to verify your answer
-       */
-      return ctx.db
-        .insertInto('friendships')
+      //todo: Question 3: Fix bug
+
+      //* Repalace insertInto with replaceInto
+      return await ctx.db
+        .replaceInto('friendships')
         .values({
           userId: ctx.session.userId,
           friendUserId: input.friendUserId,
@@ -96,57 +83,28 @@ export const friendshipRequestRouter = router({
     .input(AnswerFriendshipRequestInputSchema)
     .mutation(async ({ ctx, input }) => {
       await ctx.db.transaction().execute(async (t) => {
-        /**
-         * Question 1: Implement api to accept a friendship request
-         *
-         * When a user accepts a friendship request, we need to:
-         *  1. Update the friendship request to have status `accepted`
-         *  2. Create a new friendship request record with the opposite user as the friend
-         *
-         * The end result that we want will look something like this
-         *
-         *  | userId | friendUserId | status   |
-         *  | ------ | ------------ | -------- |
-         *  | 1      | 2            | accepted |
-         *  | 2      | 1            | accepted |
-         *
-         * Instructions:
-         *  - Your answer must be inside this transaction code block
-         *  - Run `yarn test` to verify your answer
-         *
-         * Documentation references:
-         *  - https://kysely-org.github.io/kysely/classes/Transaction.html#transaction
-         *  - https://kysely-org.github.io/kysely/classes/Kysely.html#insertInto
-         *  - https://kysely-org.github.io/kysely/classes/Kysely.html#updateTable
-         */
+        //todo: Question 1: Implement api to accept a friendship request
+
+        const { friendUserId } = input
+        const userId = ctx.session.userId
 
         //* Update the friendship request to have status `accepted`
         await t
           .updateTable('friendships')
-          .where('friendships.userId', '=', input.friendUserId)
-          .where('friendships.friendUserId', '=', ctx.session.userId)
           .set({ status: FriendshipStatusSchema.Values['accepted'] })
+          .where('friendships.userId', '=', friendUserId)
+          .where('friendships.friendUserId', '=', userId)
           .execute()
 
         //* Create a new friendship request record with the opposite user as the friend
-        const existingFriendshipRecord = await t
-          .selectFrom('friendships')
-          .where('friendships.userId', '=', ctx.session.userId)
-          .where('friendships.friendUserId', '=', input.friendUserId)
-          .selectAll()
+        await t
+          .replaceInto('friendships')
+          .values({
+            userId,
+            friendUserId,
+            status: FriendshipStatusSchema.Values['accepted'],
+          })
           .execute()
-
-        if (existingFriendshipRecord.length === 0) {
-          await t
-            .insertInto('friendships')
-            .values({
-              userId: ctx.session.userId,
-              friendUserId: input.friendUserId,
-              status: FriendshipStatusSchema.Values['accepted'],
-            })
-            .returningAll()
-            .executeTakeFirstOrThrow()
-        }
       })
     }),
 
