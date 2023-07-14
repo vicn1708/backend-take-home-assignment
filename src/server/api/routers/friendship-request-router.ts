@@ -84,7 +84,6 @@ export const friendshipRequestRouter = router({
     .mutation(async ({ ctx, input }) => {
       await ctx.db.transaction().execute(async (t) => {
         //todo: Question 1: Implement api to accept a friendship request
-
         const { friendUserId } = input
         const userId = ctx.session.userId
 
@@ -112,21 +111,7 @@ export const friendshipRequestRouter = router({
     .use(canAnswerFriendshipRequest)
     .input(AnswerFriendshipRequestInputSchema)
     .mutation(async ({ ctx, input }) => {
-      /**
-       * Question 2: Implement api to decline a friendship request
-       *
-       * Set the friendship request status to `declined`
-       *
-       * Instructions:
-       *  - Go to src/server/tests/friendship-request.test.ts, enable the test
-       * scenario for Question 2
-       *  - Run `yarn test` to verify your answer
-       *
-       * Documentation references:
-       *  - https://vitest.dev/api/#test-skip
-       */
-
-      //* Set the friendship request status to `declined`
+      //*todo: Question 2: Implement api to decline a friendship request
       ctx.db.transaction().execute(async (t) => {
         const { friendUserId } = input
 
